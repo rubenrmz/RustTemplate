@@ -1,0 +1,80 @@
+# ============================================================
+# Cargo.toml — rust_template
+# Metadata del paquete, dependencias y perfiles de compilación
+# ============================================================
+
+[package]
+name = "rust_template"
+version = "0.1.0"
+edition = "2021"          # edición de Rust, define qué features del lenguaje están disponibles
+
+# ============================================================
+# Dependencias de producción
+# Versiones 0.x: Cargo bloquea al minor (0.8 = >=0.8.0, <0.9.0)
+# Versiones 1.x: Cargo bloquea al major (1 = >=1.0.0, <2.0.0)
+# ============================================================
+[dependencies]
+
+# Framework web — maneja rutas, middlewares y extractores HTTP
+axum = "0.8"
+
+# Runtime async — necesario para ejecutar código asíncrono
+# "full" incluye: IO, time, sync, macros, etc.
+tokio = { version = "1", features = ["full"] }
+
+# Serialización/deserialización — convierte structs a/desde JSON
+# "derive" permite usar #[derive(Serialize, Deserialize)] en tus structs
+serde = { version = "1", features = ["derive"] }
+
+# Utilidades JSON — json!() macro y manejo de valores dinámicos
+serde_json = "1"
+
+# Middleware base — capas de la stack HTTP (usado internamente por axum)
+tower = "0.5"
+
+# Middlewares HTTP listos — cors, logging de requests, compresión, etc.
+# "cors" para Cross-Origin, "trace" para logging automático de requests
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Carga variables de entorno desde el archivo .env
+dotenvy = "0.15"
+
+# Manejo de errores ergonómico — genera Display e impl Error automáticamente
+# via #[derive(Error)] en tus enums de error
+thiserror = "2.0"
+
+# Macros de logging estructurado — trace!, debug!, info!, warn!, error!
+tracing = "0.1"
+
+# Configuración del sistema de logging — formato, nivel, filtros
+# "env-filter" permite controlar el nivel con la variable RUST_LOG
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# UUIDs — generación y serialización de IDs únicos
+# "v4" para UUIDs aleatorios, "serde" para serialización automática
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Fechas y tiempos — DateTime<Utc>, timestamps, etc.
+# "serde" para serialización automática de fechas
+chrono = { version = "0.4", features = ["serde"] }
+
+# ============================================================
+# Dependencias solo para tests — no se incluyen en el binario final
+# ============================================================
+[dev-dependencies]
+
+# Cliente HTTP para tests de integración — simula requests a tu API
+axum-test = "15"
+
+# Tokio también en dev para poder usar #[tokio::test] en los tests
+tokio = { version = "1", features = ["full"] }
+
+# ============================================================
+# Perfil release — optimizaciones para producción
+# Usar con: cargo build --release
+# ============================================================
+[profile.release]
+opt-level = 3        # máxima optimización de velocidad (0=ninguna, 1, 2, 3=máxima)
+lto = true           # Link Time Optimization — reduce tamaño y mejora velocidad
+codegen-units = 1    # compila en un solo bloque — más lento de compilar, binario más rápido
+strip = true         # elimina símbolos de debug del binario — reduce tamaño considerablemente
