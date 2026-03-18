@@ -1,7 +1,13 @@
-// src/handlers/health.rs
-use axum::{http::StatusCode, Json};
-use serde_json::{json, Value};
+// src/routes/health.rs
+use axum::{routing::get, Router};
+use std::sync::Arc;
+use crate::state::AppState;
 
-pub async fn health_check() -> (StatusCode, Json<Value>) {
-    (StatusCode::OK, Json(json!({ "status": "ok" })))
+pub fn router() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/health", get(health_check))
+}
+
+async fn health_check() -> &'static str {
+    "ok"
 }

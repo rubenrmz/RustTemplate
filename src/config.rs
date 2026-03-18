@@ -1,35 +1,93 @@
 // src/config.rs
+use std::env;
 
-// ============================================================
-// config.rs — configuración de la aplicación
-// Lee variables de entorno y las centraliza en un struct
-// Equivalente a config.py en Flask
-// ============================================================
-
+/// Central application configuration.
 #[derive(Debug, Clone)]
-// Clone es necesario porque AppState se clona en cada request
 pub struct Config {
+    // App
+    pub env: String,
     pub host: String,
-    pub database_url: String,
+    pub timezone: String,
+
+    // Security
+    pub secret_key: String,
     pub jwt_secret: String,
+    pub jwt_expiration_seconds: u64,
+
+    // Database
+    pub database_url: String,
+    pub database_max_connections: u32,
+
+    // Redis
+    pub redis_url: String,
+
+    // Mail
+    pub mail_host: String,
+    pub mail_port: u16,
+    pub mail_username: String,
+    pub mail_password: String,
+    pub mail_from: String,
+
+    // Workers
+    pub worker_concurrency: usize,
+
+    // WebSockets
+    pub ws_max_connections: usize,
 }
 
 impl Config {
-    // Construye Config leyendo el entorno
-    // Se llama una sola vez al arrancar en AppState::new()
+    /// Loads configuration from environment variables.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any required environment variable is missing or malformed.
     pub fn from_env() -> Self {
         Self {
-            // unwrap_or_else provee un valor por defecto si la variable no existe
-            host: std::env::var("HOST")
-                .unwrap_or_else(|_| "0.0.0.0:3000".into()),
+            env: env::var("ENV").unwrap_or_else(|_| "development".into()),
+            host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0:3000".into()),
+            timezone: env::var("TIMEZONE").unwrap_or_else(|_| "UTC".into()),
 
-            // expect() detiene la app si la variable es obligatoria y no existe
-            // Mejor fallar al arrancar que fallar silencioso en runtime
-            database_url: std::env::var("DATABASE_URL")
-                .expect("DATABASE_URL requerido"),
+            secret_key: env::var("SECRET_KEY").expect("SECRET_KEY must be set"),
+            jwt_secret: env::var("JWT_SECRET").expect("JWT_SECRET must be set"),
+            jwt_expiration_seconds: env::var("JWT_EXPIRATION_SECONDS")
+                .unwrap_or_else(|_| "3600".into())
+                .parse()
+                .expect("JWT_EXPIRATION_SECONDS must be a number"),
 
-            jwt_secret: std::env::var("JWT_SECRET")
-                .expect("JWT_SECRET requerido"),
+            database_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
+            database_max_connections: env::var("DATABASE_MAX_CONNECTIONS")
+                .unwrap_or_else(|_| "10".into())
+                .parse()
+                .expect("DATABASE_MAX_CONNECTIONS must be a number"),
+
+            redis_url: env::var("REDIS_URL").expect("REDIS_URL must be set"),
+
+            mail_host: env::var("MAIL_HOST").expect("MAIL_HOST must be set"),
+            mail_port: env::var("MAIL_PORT")
+                .unwrap_or_else(|_| "587".into())
+                .parse()
+                .expect("MAIL_PORT must be a number"),
+            mail_username: env::var("MAIL_USERNAME").expect("MAIL_USERNAME must be set"),
+            mail_password: env::var("MAIL_PASSWORD").expect("MAIL_PASSWORD must be set"),
+            mail_from: env::var("MAIL_FROM").expect("MAIL_FROM must be set"),
+
+            worker_concurrency: env::var("WORKER_CONCURRENCY")
+                .unwrap_or_else(|_| "4".into())
+                .parse()
+                .expect("WORKER_CONCURRENCY must be a number"),
+
+            ws_max_connections: env::var("WS_MAX_CONNECTIONS")
+                .unwrap_or_else(|_| "1000".into())
+                .parse()
+                .expect("WS_MAX_CONNECTIONS must be a number"),
         }
+    }
+
+    pub fn is_production(&self) -> bool {
+        self.env == "production"
+    }
+
+    pub fn is_development(&self) -> bool {
+        self.env == "development"
     }
 }
