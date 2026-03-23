@@ -20,5 +20,5 @@ use state::AppState;
 /// Builds and returns the configured application router.
 pub async fn create_app() -> Router {
     let state = Arc::new(AppState::new().await);
-    routes::create_router(state)
+    routes::router(state)
 }
