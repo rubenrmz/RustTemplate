@@ -2,11 +2,14 @@
 use axum::{middleware, Router};
 use std::sync::Arc;
 
-use crate::{middleware::auth::require_auth, state::AppState};
-// use crate::middleware::role::require_admin;
+use crate::{
+    middleware::{auth::require_auth, role::require_admin},
+    state::AppState,
+};
 
 pub mod auth;
 pub mod health;
+pub mod users;
 
 pub fn router(state: Arc<AppState>) -> Router {
     let public_routes = Router::new()
@@ -23,18 +26,17 @@ pub fn router(state: Arc<AppState>) -> Router {
             require_auth,
         ));
 
-    // Example: admin-only routes
-    // let admin_routes = Router::new()
-    //     .merge(admin::router())
-    //     .layer(middleware::from_fn(require_admin))
-    //     .layer(middleware::from_fn_with_state(
-    //         state.clone(),
-    //         require_auth,
-    //     ));
+    let admin_routes = Router::new()
+        .merge(users::router())
+        .layer(middleware::from_fn(require_admin))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            require_auth,
+        ));
 
     Router::new()
         .merge(public_routes)
         .merge(protected_routes)
-        // .merge(admin_routes)
+        .merge(admin_routes)
         .with_state(state)
 }

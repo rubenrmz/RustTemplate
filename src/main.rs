@@ -17,16 +17,20 @@ async fn main() -> anyhow::Result<()> {
 
     let app = create_app().await;
 
-    let addr =
-        std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0:3000".into());
+    let host = std::env::var("APP_HOST").unwrap_or_else(|_| "127.0.0.1".into());
+    let port = std::env::var("APP_PORT").unwrap_or_else(|_| "3000".into());
+    let addr = format!("{}:{}", host, port);
 
     let listener = TcpListener::bind(&addr).await?;
 
     tracing::info!("listening on {}", addr);
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     Ok(())
 }

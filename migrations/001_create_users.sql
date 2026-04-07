@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     role        VARCHAR(20)  NOT NULL DEFAULT 'user',
     active      BOOLEAN      NOT NULL DEFAULT TRUE,
+    reset_token   TEXT,
+    tk_expires_at TIMESTAMPTZ,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

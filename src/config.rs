@@ -6,7 +6,6 @@ use std::env;
 pub struct Config {
     // App
     pub env: String,
-    pub host: String,
     pub timezone: String,
     pub frontend_url: String,
 
@@ -24,6 +23,11 @@ pub struct Config {
     pub aws_jwt_private_key_secret: Option<String>,
     pub aws_jwt_public_key_secret: Option<String>,
     pub aws_region: String,
+
+    // Admin seed
+    pub admin_email: Option<String>,
+    pub admin_password: Option<String>,
+    pub admin_name: Option<String>,
 
     // Database
     pub database_url: String,
@@ -57,7 +61,6 @@ impl Config {
     pub fn from_env() -> Self {
         Self {
             env: env::var("ENV").unwrap_or_else(|_| "development".into()),
-            host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0:3000".into()),
             timezone: env::var("TIMEZONE").unwrap_or_else(|_| "UTC".into()),
             frontend_url: env::var("FRONTEND_URL").expect("FRONTEND_URL must be set"),
 
@@ -79,6 +82,10 @@ impl Config {
             aws_jwt_public_key_secret: env::var("AWS_JWT_PUBLIC_KEY_SECRET").ok(),
             aws_region: env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".into()),
 
+            admin_email: env::var("ADMIN_EMAIL").ok(),
+            admin_password: env::var("ADMIN_PASSWORD").ok(),
+            admin_name: env::var("ADMIN_NAME").ok(),
+
             database_url: Self::build_database_url(),
             database_max_connections: env::var("DATABASE_MAX_CONNECTIONS")
                 .unwrap_or_else(|_| "10".into())
@@ -87,7 +94,7 @@ impl Config {
             database_schema: env::var("DATABASE_SCHEMA")
                 .unwrap_or_else(|_| "public".into()),
 
-            redis_url: env::var("REDIS_URL").expect("REDIS_URL must be set"),
+            redis_url: Self::build_redis_url(),
 
             mail_host: env::var("MAIL_HOST").expect("MAIL_HOST must be set"),
             mail_port: env::var("MAIL_PORT")
@@ -124,6 +131,18 @@ impl Config {
             "postgres://{}:{}@{}:{}/{}?options=-c search_path%3D{}",
             user, password, host, port, name, schema
         )
+    }
+
+    fn build_redis_url() -> String {
+        let host = env::var("REDIS_HOST").unwrap_or_else(|_| "localhost".into());
+        let port = env::var("REDIS_PORT").unwrap_or_else(|_| "6379".into());
+        let password = env::var("REDIS_PASSWORD").ok();
+        let db = env::var("REDIS_DB").unwrap_or_else(|_| "0".into());
+
+        match password {
+            Some(pwd) => format!("redis://:{}@{}:{}/{}", pwd, host, port, db),
+            None => format!("redis://{}:{}/{}", host, port, db),
+        }
     }
 
     pub fn use_aws_secrets(&self) -> bool {

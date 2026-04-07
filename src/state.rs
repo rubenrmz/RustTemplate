@@ -41,6 +41,15 @@ impl AppState {
 
         tracing::info!("database connection pool established");
 
+        sqlx::migrate!("./migrations")
+            .run(&db)
+            .await
+            .expect("failed to run database migrations");
+
+        tracing::info!("database migrations applied");
+
+        crate::store::seeder::seed_admin(&db, &config).await;
+
         let (private_pem, public_pem) = load_rsa_keys(&config).await;
 
         let jwt_encoding_key = EncodingKey::from_rsa_pem(&private_pem)
