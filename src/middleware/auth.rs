@@ -8,20 +8,22 @@ use std::sync::Arc;
 
 use crate::{errors::AppError, middleware::claims::Claims, state::AppState};
 
-
 pub async fn require_auth(
     State(state): State<Arc<AppState>>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, AppError> {
     let token = extract_bearer_token(&req)?;
-    let claims = Claims::decode(token, &state.config.jwt_secret)?;
+    let claims = Claims::decode(
+        token,
+        &state.jwt_decoding_key,
+        &state.config.jwt_issuer,
+    )?;
 
     req.extensions_mut().insert(claims);
 
     Ok(next.run(req).await)
 }
-
 
 fn extract_bearer_token(req: &Request) -> Result<&str, AppError> {
     let header = req

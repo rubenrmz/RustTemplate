@@ -1,1 +1,2 @@
-// src/handlers/mod.rs
+// src/dto/mod.rs
+pub mod auth_dto;

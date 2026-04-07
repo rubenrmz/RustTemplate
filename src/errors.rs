@@ -15,6 +15,9 @@ pub enum AppError {
     #[error("unauthorized")]
     Unauthorized,
 
+    #[error("forbidden")]
+    Forbidden,
+
     #[error("conflict")]
     Conflict,
 
@@ -35,6 +38,8 @@ impl IntoResponse for AppError {
                 StatusCode::NOT_FOUND,
             AppError::Unauthorized =>
                 StatusCode::UNAUTHORIZED,
+            AppError::Forbidden =>
+                StatusCode::FORBIDDEN,
             AppError::Conflict =>
                 StatusCode::CONFLICT,
             AppError::Validation(_) =>
