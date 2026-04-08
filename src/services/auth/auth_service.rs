@@ -8,12 +8,18 @@ use crate::store::user_store;
 use crate::utils::password;
 
 pub async fn register(state: &AppState, dto: RegisterDto) -> Result<User, AppError> {
+    if !state.config.allow_registration {
+        return Err(AppError::Forbidden);
+    }
+
     let hash = password::hash(&dto.password)?;
-    user_store::create(&state.db, &dto.name, &dto.email, &hash).await
+    let email = dto.email.to_lowercase();
+    user_store::create(&state.db, &dto.name, &email, &hash).await
 }
 
 pub async fn login(state: &AppState, dto: LoginDto) -> Result<TokenResponse, AppError> {
-    let user = user_store::find_by_email(&state.db, &dto.email)
+    let email = dto.email.to_lowercase();
+    let user = user_store::find_by_email(&state.db, &email)
         .await?
         .filter(|u| u.active)
         .ok_or(AppError::Unauthorized)?;

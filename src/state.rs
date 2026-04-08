@@ -35,6 +35,9 @@ impl AppState {
 
         let db = PgPoolOptions::new()
             .max_connections(config.database_max_connections)
+            .acquire_timeout(std::time::Duration::from_secs(5))
+            .idle_timeout(std::time::Duration::from_secs(600))
+            .max_lifetime(std::time::Duration::from_secs(1800))
             .connect(&config.database_url)
             .await
             .expect("failed to connect to database");

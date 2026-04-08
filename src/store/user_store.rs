@@ -7,7 +7,7 @@ use crate::errors::AppError;
 use crate::models::user::User;
 
 pub async fn find_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, AppError> {
-    sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+    sqlx::query_as::<_, User>("SELECT * FROM users WHERE LOWER(email) = LOWER($1)")
         .bind(email)
         .fetch_optional(pool)
         .await

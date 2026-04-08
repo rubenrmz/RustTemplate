@@ -41,7 +41,8 @@ pub async fn create(state: &AppState, dto: CreateUserDto) -> Result<UserResponse
     let hash = password::hash(&dto.password)?;
     let role = dto.role.as_deref().unwrap_or("user");
 
-    let user = user_store::create_with_role(&state.db, &dto.name, &dto.email, &hash, role).await?;
+    let email = dto.email.to_lowercase();
+    let user = user_store::create_with_role(&state.db, &dto.name, &email, &hash, role).await?;
 
     Ok(to_response(user))
 }
@@ -52,11 +53,12 @@ pub async fn update(state: &AppState, id: Uuid, dto: UpdateUserDto) -> Result<Us
         None => None,
     };
 
+    let email = dto.email.as_deref().map(|e| e.to_lowercase());
     let user = user_store::update(
         &state.db,
         id,
         dto.name.as_deref(),
-        dto.email.as_deref(),
+        email.as_deref(),
         hash.as_deref(),
         dto.role.as_deref(),
         dto.active,

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use axum::http::{header, HeaderValue, Method};
 use axum::Router;
 use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::TraceLayer;
@@ -28,10 +28,14 @@ pub async fn create_app() -> Router {
     let state = Arc::new(AppState::new().await);
 
     let cors = if state.config.is_production() {
+        let origins = state.config.cors_allowed_origins.clone();
         CorsLayer::new()
             .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
             .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
             .allow_credentials(true)
+            .allow_origin(AllowOrigin::predicate(move |origin, _| {
+                origins.iter().any(|o| o.as_bytes() == origin.as_bytes())
+            }))
     } else {
         CorsLayer::permissive()
     };
@@ -60,10 +64,22 @@ pub async fn create_app() -> Router {
         ))
         .layer(SetResponseHeaderLayer::overriding(
             header::STRICT_TRANSPORT_SECURITY,
-            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+            HeaderValue::from_static("max-age=63072000; includeSubDomains; preload"),
         ))
         .layer(SetResponseHeaderLayer::overriding(
             header::REFERRER_POLICY,
             HeaderValue::from_static("strict-origin-when-cross-origin"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::HeaderName::from_static("x-xss-protection"),
+            HeaderValue::from_static("1; mode=block"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::HeaderName::from_static("permissions-policy"),
+            HeaderValue::from_static("camera=(), microphone=(), geolocation=()"),
         ))
 }

@@ -7,7 +7,7 @@ pub struct RegisterDto {
     #[validate(length(min = 2, max = 100))]
     pub name: String,
 
-    #[validate(email)]
+    #[validate(email, length(max = 255))]
     pub email: String,
 
     #[validate(length(min = 8, max = 128))]
@@ -16,7 +16,7 @@ pub struct RegisterDto {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct LoginDto {
-    #[validate(email)]
+    #[validate(email, length(max = 255))]
     pub email: String,
 
     #[validate(length(min = 1))]
@@ -25,7 +25,7 @@ pub struct LoginDto {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct RequestResetDto {
-    #[validate(email)]
+    #[validate(email, length(max = 255))]
     pub email: String,
 }
 

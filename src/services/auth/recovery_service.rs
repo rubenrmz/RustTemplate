@@ -9,7 +9,8 @@ use crate::store::user_store;
 use crate::utils::{mail, password};
 
 pub async fn request_password_reset(state: &AppState, email: &str) -> Result<(), AppError> {
-    let user = match user_store::find_by_email(&state.db, email).await? {
+    let email = email.to_lowercase();
+    let user = match user_store::find_by_email(&state.db, &email).await? {
         Some(u) => u,
         None => return Ok(()), // no revelar si el email existe
     };
@@ -109,13 +110,23 @@ fn base64_url_encode(bytes: &[u8]) -> String {
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }
 
+fn escape_html(input: &str) -> String {
+    input
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}
+
 fn hash_token(token: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(token.as_bytes());
     format!("{:x}", hasher.finalize())
 }
 
-fn build_reset_email(name: &str, reset_url: &str, expiration_hours: u64) -> String {
+fn build_reset_email(raw_name: &str, reset_url: &str, expiration_hours: u64) -> String {
+    let name = escape_html(raw_name);
     format!(
         r#"<!DOCTYPE html>
 <html>
@@ -147,7 +158,8 @@ fn build_reset_email(name: &str, reset_url: &str, expiration_hours: u64) -> Stri
     )
 }
 
-fn build_confirmation_email(name: &str) -> String {
+fn build_confirmation_email(raw_name: &str) -> String {
+    let name = escape_html(raw_name);
     format!(
         r#"<!DOCTYPE html>
 <html>

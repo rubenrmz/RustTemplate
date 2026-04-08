@@ -8,9 +8,9 @@ pub struct Config {
     pub env: String,
     pub timezone: String,
     pub frontend_url: String,
+    pub allow_registration: bool,
 
     // Security
-    pub secret_key: String,
     pub jwt_issuer: String,
     pub jwt_expiration_seconds: u64,
     pub reset_token_expiration_hours: u64,
@@ -23,6 +23,9 @@ pub struct Config {
     pub aws_jwt_private_key_secret: Option<String>,
     pub aws_jwt_public_key_secret: Option<String>,
     pub aws_region: String,
+
+    // CORS
+    pub cors_allowed_origins: Vec<String>,
 
     // Admin seed
     pub admin_email: Option<String>,
@@ -63,8 +66,11 @@ impl Config {
             env: env::var("ENV").unwrap_or_else(|_| "development".into()),
             timezone: env::var("TIMEZONE").unwrap_or_else(|_| "UTC".into()),
             frontend_url: env::var("FRONTEND_URL").expect("FRONTEND_URL must be set"),
+            allow_registration: env::var("ALLOW_REGISTRATION")
+                .unwrap_or_else(|_| "true".into())
+                .parse()
+                .unwrap_or(true),
 
-            secret_key: env::var("SECRET_KEY").expect("SECRET_KEY must be set"),
             jwt_issuer: env::var("JWT_ISSUER").expect("JWT_ISSUER must be set"),
             jwt_expiration_seconds: env::var("JWT_EXPIRATION_SECONDS")
                 .unwrap_or_else(|_| "3600".into())
@@ -81,6 +87,13 @@ impl Config {
             aws_jwt_private_key_secret: env::var("AWS_JWT_PRIVATE_KEY_SECRET").ok(),
             aws_jwt_public_key_secret: env::var("AWS_JWT_PUBLIC_KEY_SECRET").ok(),
             aws_region: env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".into()),
+
+            cors_allowed_origins: env::var("CORS_ALLOWED_ORIGINS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
 
             admin_email: env::var("ADMIN_EMAIL").ok(),
             admin_password: env::var("ADMIN_PASSWORD").ok(),
@@ -140,8 +153,8 @@ impl Config {
         let db = env::var("REDIS_DB").unwrap_or_else(|_| "0".into());
 
         match password {
-            Some(pwd) => format!("redis://:{}@{}:{}/{}", pwd, host, port, db),
-            None => format!("redis://{}:{}/{}", host, port, db),
+            Some(pwd) if !pwd.is_empty() => format!("redis://:{}@{}:{}/{}", pwd, host, port, db),
+            _ => format!("redis://{}:{}/{}", host, port, db),
         }
     }
 

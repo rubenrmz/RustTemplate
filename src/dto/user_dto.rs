@@ -8,7 +8,7 @@ pub struct CreateUserDto {
     #[validate(length(min = 2, max = 100))]
     pub name: String,
 
-    #[validate(email)]
+    #[validate(email, length(max = 255))]
     pub email: String,
 
     #[validate(length(min = 8, max = 128))]
@@ -23,7 +23,7 @@ pub struct UpdateUserDto {
     #[validate(length(min = 2, max = 100))]
     pub name: Option<String>,
 
-    #[validate(email)]
+    #[validate(email, length(max = 255))]
     pub email: Option<String>,
 
     #[validate(length(min = 8, max = 128))]
