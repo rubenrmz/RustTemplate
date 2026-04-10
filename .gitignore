@@ -23,3 +23,6 @@ logs/
 # Key
 *.pem
 .secrets
+
+# Claude
+.claude
