@@ -39,10 +39,8 @@ pub async fn get_by_id(state: &AppState, id: Uuid) -> Result<UserResponse, AppEr
 
 pub async fn create(state: &AppState, dto: CreateUserDto) -> Result<UserResponse, AppError> {
     let hash = password::hash(&dto.password)?;
-    let role = dto.role.as_deref().unwrap_or("user");
-
     let email = dto.email.to_lowercase();
-    let user = user_store::create_with_role(&state.db, &dto.name, &email, &hash, role).await?;
+    let user = user_store::create(&state.db, &dto.name, &email, &hash).await?;
 
     Ok(to_response(user))
 }
@@ -60,7 +58,6 @@ pub async fn update(state: &AppState, id: Uuid, dto: UpdateUserDto) -> Result<Us
         dto.name.as_deref(),
         email.as_deref(),
         hash.as_deref(),
-        dto.role.as_deref(),
         dto.active,
     )
     .await?;
@@ -77,7 +74,6 @@ fn to_response(user: User) -> UserResponse {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
         active: user.active,
         created_at: user.created_at.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
         updated_at: user.updated_at.format("%Y-%m-%dT%H:%M:%SZ").to_string(),

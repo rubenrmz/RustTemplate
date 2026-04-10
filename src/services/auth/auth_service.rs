@@ -4,7 +4,7 @@ use crate::errors::AppError;
 use crate::middleware::claims::Claims;
 use crate::models::user::User;
 use crate::state::AppState;
-use crate::store::user_store;
+use crate::store::{rbac_store, user_store};
 use crate::utils::password;
 
 pub async fn register(state: &AppState, dto: RegisterDto) -> Result<User, AppError> {
@@ -29,7 +29,7 @@ pub async fn login(state: &AppState, dto: LoginDto) -> Result<TokenResponse, App
         return Err(AppError::Unauthorized);
     }
 
-    issue_token(state, &user)
+    issue_token(state, &user).await
 }
 
 pub async fn refresh(state: &AppState, claims: &Claims) -> Result<TokenResponse, AppError> {
@@ -40,14 +40,18 @@ pub async fn refresh(state: &AppState, claims: &Claims) -> Result<TokenResponse,
         .filter(|u| u.active)
         .ok_or(AppError::Unauthorized)?;
 
-    issue_token(state, &user)
+    issue_token(state, &user).await
 }
 
-pub fn issue_token(state: &AppState, user: &User) -> Result<TokenResponse, AppError> {
+pub async fn issue_token(state: &AppState, user: &User) -> Result<TokenResponse, AppError> {
+    let roles = rbac_store::roles_by_user(&state.db, user.id).await?;
+    let aud: Vec<String> = roles.keys().cloned().collect();
+
     let claims = Claims::new(
         &state.config.jwt_issuer,
+        aud,
         &user.id.to_string(),
-        &user.role,
+        roles,
         state.config.jwt_expiration_seconds,
     );
     let token = claims.encode(&state.jwt_encoding_key)?;

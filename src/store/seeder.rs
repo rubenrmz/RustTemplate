@@ -2,11 +2,12 @@
 use sqlx::PgPool;
 
 use crate::config::Config;
-use crate::store::user_store;
+use crate::store::{rbac_store, user_store};
 use crate::utils::password;
 
 /// Seeds the default admin user if `ADMIN_EMAIL` and `ADMIN_PASSWORD`
 /// are set and no user with that email exists yet.
+/// Also assigns the `admin` role in every active system.
 ///
 /// Runs once at startup — idempotent.
 pub async fn seed_admin(pool: &PgPool, config: &Config) {
@@ -24,29 +25,62 @@ pub async fn seed_admin(pool: &PgPool, config: &Config) {
         }
     };
 
-    // Check if already exists
-    match user_store::find_by_email(pool, email).await {
-        Ok(Some(_)) => {
-            tracing::debug!("admin user '{email}' already exists, skipping seed");
-            return;
+    // Find or create the user
+    let user = match user_store::find_by_email(pool, email).await {
+        Ok(Some(u)) => {
+            tracing::debug!("admin user '{email}' already exists, ensuring roles");
+            u
         }
-        Ok(None) => {}
+        Ok(None) => {
+            let hash = match password::hash(pwd) {
+                Ok(h) => h,
+                Err(e) => {
+                    tracing::error!("failed to hash admin password: {e}");
+                    return;
+                }
+            };
+
+            match user_store::create(pool, name, email, &hash).await {
+                Ok(u) => {
+                    tracing::info!("admin user '{email}' seeded successfully");
+                    u
+                }
+                Err(e) => {
+                    tracing::error!("failed to seed admin user: {e}");
+                    return;
+                }
+            }
+        }
         Err(e) => {
             tracing::error!("failed to check admin user: {e}");
             return;
         }
-    }
+    };
 
-    let hash = match password::hash(pwd) {
-        Ok(h) => h,
+    // Assign admin role in every active system
+    let system_keys: Vec<String> = match sqlx::query_scalar::<_, String>(
+        "SELECT key FROM systems WHERE active = TRUE",
+    )
+    .fetch_all(pool)
+    .await
+    {
+        Ok(keys) => keys,
         Err(e) => {
-            tracing::error!("failed to hash admin password: {e}");
+            tracing::error!("failed to fetch systems for admin seed: {e}");
             return;
         }
     };
 
-    match user_store::create_with_role(pool, name, email, &hash, "admin").await {
-        Ok(_) => tracing::info!("admin user '{email}' seeded successfully"),
-        Err(e) => tracing::error!("failed to seed admin user: {e}"),
+    for sys_key in &system_keys {
+        if let Err(e) = rbac_store::assign_role(pool, user.id, sys_key, "admin").await {
+            tracing::error!("failed to assign admin role in '{sys_key}': {e}");
+        }
+    }
+
+    if !system_keys.is_empty() {
+        tracing::info!(
+            "admin roles assigned in systems: {}",
+            system_keys.join(", ")
+        );
     }
 }

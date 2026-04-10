@@ -1,4 +1,6 @@
 // src/dto/auth_dto.rs
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
@@ -59,7 +61,7 @@ pub struct MeResponse {
     pub id: String,
     pub email: String,
     pub name: String,
-    pub role: String,
+    pub roles: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]

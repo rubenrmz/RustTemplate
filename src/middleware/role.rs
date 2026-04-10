@@ -8,7 +8,7 @@ use axum::{
 use crate::errors::AppError;
 use crate::middleware::claims::Claims;
 
-/// Rejects requests whose JWT `role` is not `"admin"`.
+/// Rejects requests unless the user has the `"admin"` role in **any** system.
 ///
 /// Must be layered **after** `require_auth` so that `Claims`
 /// are already present in the request extensions.
@@ -22,22 +22,11 @@ use crate::middleware::claims::Claims;
 pub async fn require_admin(req: Request, next: Next) -> Result<Response, AppError> {
     let claims = req.extensions().get::<Claims>().ok_or(AppError::Unauthorized)?;
 
-    if claims.role != "admin" {
+    let is_admin = claims.roles.values().any(|roles| roles.iter().any(|r| r == "admin"));
+
+    if !is_admin {
         return Err(AppError::Forbidden);
     }
 
     Ok(next.run(req).await)
-}
-
-/// Rejects requests whose JWT `role` is not `"admin"` or `"user"`.
-///
-/// Useful for routes that any authenticated & active user can access
-/// but you still want to exclude other future roles (e.g. `"guest"`).
-pub async fn require_user_or_admin(req: Request, next: Next) -> Result<Response, AppError> {
-    let claims = req.extensions().get::<Claims>().ok_or(AppError::Unauthorized)?;
-
-    match claims.role.as_str() {
-        "admin" | "user" => Ok(next.run(req).await),
-        _ => Err(AppError::Forbidden),
-    }
 }

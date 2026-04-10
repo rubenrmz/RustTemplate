@@ -38,8 +38,8 @@ pub async fn create(
 ) -> Result<User, AppError> {
     sqlx::query_as::<_, User>(
         r#"
-        INSERT INTO users (id, email, name, password_hash, role, active, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, 'user', true, NOW(), NOW())
+        INSERT INTO users (id, email, name, password_hash, active, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, true, NOW(), NOW())
         RETURNING *
         "#,
     )
@@ -145,40 +145,12 @@ pub async fn list(
     Ok((users, count))
 }
 
-pub async fn create_with_role(
-    pool: &PgPool,
-    name: &str,
-    email: &str,
-    password_hash: &str,
-    role: &str,
-) -> Result<User, AppError> {
-    sqlx::query_as::<_, User>(
-        r#"
-        INSERT INTO users (id, email, name, password_hash, role, active, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
-        RETURNING *
-        "#,
-    )
-    .bind(Uuid::new_v4())
-    .bind(email)
-    .bind(name)
-    .bind(password_hash)
-    .bind(role)
-    .fetch_one(pool)
-    .await
-    .map_err(|e| match e {
-        sqlx::Error::Database(ref db_err) if db_err.is_unique_violation() => AppError::Conflict,
-        _ => AppError::Internal(e.into()),
-    })
-}
-
 pub async fn update(
     pool: &PgPool,
     user_id: Uuid,
     name: Option<&str>,
     email: Option<&str>,
     password_hash: Option<&str>,
-    role: Option<&str>,
     active: Option<bool>,
 ) -> Result<User, AppError> {
     let user = find_by_id(pool, user_id)
@@ -188,21 +160,19 @@ pub async fn update(
     let name = name.unwrap_or(&user.name);
     let email = email.unwrap_or(&user.email);
     let password_hash = password_hash.unwrap_or(&user.password_hash);
-    let role = role.unwrap_or(&user.role);
     let active = active.unwrap_or(user.active);
 
     sqlx::query_as::<_, User>(
         r#"
         UPDATE users
-        SET name = $1, email = $2, password_hash = $3, role = $4, active = $5, updated_at = NOW()
-        WHERE id = $6
+        SET name = $1, email = $2, password_hash = $3, active = $4, updated_at = NOW()
+        WHERE id = $5
         RETURNING *
         "#,
     )
     .bind(name)
     .bind(email)
     .bind(password_hash)
-    .bind(role)
     .bind(active)
     .bind(user_id)
     .fetch_one(pool)

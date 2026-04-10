@@ -82,6 +82,6 @@ async fn me_handler(
         id: user.id.to_string(),
         email: user.email,
         name: user.name,
-        role: user.role,
+        roles: claims.roles,
     }))
 }

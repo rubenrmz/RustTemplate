@@ -13,9 +13,6 @@ pub struct CreateUserDto {
 
     #[validate(length(min = 8, max = 128))]
     pub password: String,
-
-    #[validate(length(min = 1, max = 20))]
-    pub role: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -29,9 +26,6 @@ pub struct UpdateUserDto {
     #[validate(length(min = 8, max = 128))]
     pub password: Option<String>,
 
-    #[validate(length(min = 1, max = 20))]
-    pub role: Option<String>,
-
     pub active: Option<bool>,
 }
 
@@ -40,7 +34,6 @@ pub struct UserResponse {
     pub id: Uuid,
     pub email: String,
     pub name: String,
-    pub role: String,
     pub active: bool,
     pub created_at: String,
     pub updated_at: String,
